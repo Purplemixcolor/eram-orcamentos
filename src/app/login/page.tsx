@@ -36,17 +36,18 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="grid min-h-screen bg-[#082747] lg:grid-cols-[1.18fr_0.82fr]">
+    <main className="grid min-h-screen bg-[#082747] lg:grid-cols-[minmax(0,1fr)_520px]">
       <section className="relative hidden overflow-hidden lg:block">
         <Image src={assetPath("/images/shipyard-login.jpg")} alt="Estaleiro com embarcacao em reparo" fill priority className="object-cover" />
-        <div className="absolute inset-0 bg-[#082747]/30" />
-        <div className="absolute inset-y-0 right-0 w-24 bg-[#082747]" style={{ clipPath: "ellipse(80% 58% at 100% 50%)" }} />
-        <div className="absolute left-[18%] top-[24%] max-w-md text-[#123c72]">
+        <div className="absolute inset-0 bg-[#082747]/50" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(4,20,38,0.74)_0%,rgba(4,20,38,0.46)_42%,rgba(4,20,38,0.18)_72%)]" />
+        <div className="absolute inset-y-0 right-0 w-16 bg-[#082747]" style={{ clipPath: "ellipse(80% 58% at 100% 50%)" }} />
+        <div className="absolute left-[15%] top-[22%] max-w-md text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)]">
           <h1 className="text-5xl font-bold leading-tight tracking-normal">
-            Construindo o <span className="text-[#224f9a]">futuro</span> da navegacao.
+            Construindo o <span className="text-[#f0c12c]">futuro</span> da navegacao.
           </h1>
           <div className="mt-8 h-0.5 w-24 bg-[#d5a619]" />
-          <p className="mt-7 text-2xl font-semibold leading-snug">Gestao e eficiencia para um estaleiro que move a Amazonia.</p>
+          <p className="mt-7 text-2xl font-semibold leading-snug text-white">Gestao e eficiencia para um estaleiro que move a Amazonia.</p>
         </div>
         <div className="absolute bottom-10 left-[9%] grid grid-cols-3 gap-8 text-white">
           {[
@@ -66,8 +67,8 @@ export default function LoginPage() {
         </div>
       </section>
 
-      <section className="flex items-center justify-center p-6 lg:bg-[linear-gradient(135deg,#082747,#0d3762)]">
-        <form onSubmit={submit} className="w-full max-w-xl rounded-[28px] bg-white p-8 shadow-2xl lg:p-12">
+      <section className="flex items-center justify-center p-6 lg:justify-end lg:bg-[linear-gradient(135deg,#082747,#0d3762)] lg:pr-10">
+        <form onSubmit={submit} className="w-full max-w-md rounded-[24px] bg-white p-7 shadow-2xl lg:p-9">
           <div className="flex justify-center">
             <EramLogo className="w-64" priority />
           </div>
