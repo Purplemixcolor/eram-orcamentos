@@ -41,7 +41,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="grid min-h-screen bg-[#082747] lg:h-screen lg:overflow-hidden lg:grid-cols-[minmax(0,1fr)_520px]">
+    <main className="grid min-h-dvh bg-[#082747] lg:h-dvh lg:overflow-hidden lg:grid-cols-[minmax(0,1fr)_520px]">
       <section className="relative hidden overflow-hidden lg:block">
         <Image src={assetPath("/images/shipyard-login.jpg")} alt="Estaleiro com embarcacao em reparo" fill priority className="object-cover" />
         <div className="absolute inset-0 bg-[#082747]/50" />
@@ -72,14 +72,14 @@ export default function LoginPage() {
         </div>
       </section>
 
-      <section className="flex items-center justify-center p-5 lg:justify-end lg:bg-[linear-gradient(135deg,#082747,#0d3762)] lg:p-7 lg:pr-10">
-        <form onSubmit={submit} className="flex w-full max-w-[448px] flex-col justify-center rounded-[24px] bg-white p-7 shadow-2xl lg:min-h-[calc(100vh-56px)] lg:p-9">
+      <section className="flex items-center justify-center p-5 lg:justify-end lg:bg-[linear-gradient(135deg,#082747,#0d3762)] lg:p-6 lg:pr-10">
+        <form onSubmit={submit} className="flex w-full max-w-[448px] flex-col justify-center rounded-[24px] bg-white p-7 shadow-2xl lg:h-[min(860px,calc(100dvh-48px))] lg:p-8">
           <div className="flex justify-center">
-            <EramLogo className="w-52" priority />
+            <EramLogo className="w-44" priority />
           </div>
-          <h2 className="mt-7 text-2xl font-bold text-[#123c72]">Acesse sua conta</h2>
+          <h2 className="mt-6 text-2xl font-bold text-[#123c72]">Acesse sua conta</h2>
           <p className="mt-2 text-[#607086]">Informe seus dados para continuar.</p>
-          <div className="mt-7 space-y-5">
+          <div className="mt-6 space-y-4">
             <label className="block">
               <span className="text-sm font-semibold text-[#123c72]">E-mail</span>
               <span className="mt-2 flex h-12 items-center gap-3 rounded-md border border-[#c7d3e2] px-3">
@@ -103,10 +103,10 @@ export default function LoginPage() {
             <button type="button" className="focus-ring rounded text-sm font-semibold text-[#224f9a]">Esqueci minha senha</button>
           </div>
           {error ? <div role="alert" className="mt-5 rounded-md border border-[#f1b5b5] bg-[#fff4f4] px-3 py-2 text-sm font-medium text-[#9f2b2b]">{error}</div> : null}
-          <Button disabled={loading} className="mt-7 h-12 w-full">
+          <Button disabled={loading} className="mt-6 h-12 w-full">
             {loading ? "Entrando..." : "Entrar"}
           </Button>
-          <div className="my-7 flex items-center gap-3 text-sm font-semibold text-[#607086]">
+          <div className="my-6 flex items-center gap-3 text-sm font-semibold text-[#607086]">
             <span className="h-px flex-1 bg-[#d8e1ec]" />
             ou
             <span className="h-px flex-1 bg-[#d8e1ec]" />
@@ -115,7 +115,7 @@ export default function LoginPage() {
             <Building2 className="h-5 w-5" />
             Acessar com minha empresa
           </Button>
-          <p className="mt-5 text-xs leading-5 text-[#607086]">Demo local: use qualquer usuario seedado com a senha <strong>eram123</strong>. Cadastro publico nao esta disponivel.</p>
+          <p className="mt-4 text-xs leading-5 text-[#607086]">Demo local: use qualquer usuario seedado com a senha <strong>eram123</strong>. Cadastro publico nao esta disponivel.</p>
         </form>
       </section>
     </main>
