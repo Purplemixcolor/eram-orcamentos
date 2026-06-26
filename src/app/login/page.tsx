@@ -1,0 +1,119 @@
+"use client";
+
+import { useState } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { Building2, Eye, Lock, Mail, ShieldCheck, TrendingUp, Users } from "lucide-react";
+import { EramLogo } from "@/components/brand/eram-logo";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { users } from "@/lib/demo-data";
+
+export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("admin@eram.local");
+  const [password, setPassword] = useState("eram123");
+  const [remember, setRemember] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setLoading(true);
+    await new Promise((resolve) => window.setTimeout(resolve, 300));
+    setLoading(false);
+    const user = users.find((item) => item.email === email && item.active);
+    if (!user || password !== "eram123") {
+      setError("E-mail ou senha incorretos.");
+      return;
+    }
+    window.localStorage.setItem("eram_session_user_id", user.id);
+    const nextUrl = new URL(window.location.href).searchParams.get("next");
+    router.push(nextUrl ?? "/dashboard");
+  }
+
+  return (
+    <main className="grid min-h-screen bg-[#082747] lg:grid-cols-[1.18fr_0.82fr]">
+      <section className="relative hidden overflow-hidden lg:block">
+        <Image src="/images/shipyard-login.jpg" alt="Estaleiro com embarcacao em reparo" fill priority className="object-cover" />
+        <div className="absolute inset-0 bg-[#082747]/30" />
+        <div className="absolute inset-y-0 right-0 w-24 bg-[#082747]" style={{ clipPath: "ellipse(80% 58% at 100% 50%)" }} />
+        <div className="absolute left-[18%] top-[24%] max-w-md text-[#123c72]">
+          <h1 className="text-5xl font-bold leading-tight tracking-normal">
+            Construindo o <span className="text-[#224f9a]">futuro</span> da navegacao.
+          </h1>
+          <div className="mt-8 h-0.5 w-24 bg-[#d5a619]" />
+          <p className="mt-7 text-2xl font-semibold leading-snug">Gestao e eficiencia para um estaleiro que move a Amazonia.</p>
+        </div>
+        <div className="absolute bottom-10 left-[9%] grid grid-cols-3 gap-8 text-white">
+          {[
+            { icon: ShieldCheck, title: "Seguranca", text: "Protecao de dados e processos." },
+            { icon: TrendingUp, title: "Eficiencia", text: "Controle total das operacoes." },
+            { icon: Users, title: "Confianca", text: "Informacoes precisas em tempo real." }
+          ].map((item) => {
+            const Icon = item.icon;
+            return (
+              <div key={item.title} className="max-w-48">
+                <Icon className="mb-3 h-7 w-7 text-[#d5a619]" />
+                <div className="text-lg font-semibold">{item.title}</div>
+                <p className="mt-1 text-sm leading-5 text-white/85">{item.text}</p>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="flex items-center justify-center p-6 lg:bg-[linear-gradient(135deg,#082747,#0d3762)]">
+        <form onSubmit={submit} className="w-full max-w-xl rounded-[28px] bg-white p-8 shadow-2xl lg:p-12">
+          <div className="flex justify-center">
+            <EramLogo className="w-64" priority />
+          </div>
+          <h2 className="mt-6 text-2xl font-bold text-[#123c72]">Acesse sua conta</h2>
+          <p className="mt-2 text-[#607086]">Informe seus dados para continuar.</p>
+          <div className="mt-7 space-y-5">
+            <label className="block">
+              <span className="text-sm font-semibold text-[#123c72]">E-mail</span>
+              <span className="mt-2 flex h-12 items-center gap-3 rounded-md border border-[#c7d3e2] px-3">
+                <Mail className="h-5 w-5 text-[#607086]" />
+                <Input className="h-10 border-0 px-0 focus-visible:outline-none" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Digite seu e-mail" type="email" autoComplete="email" />
+              </span>
+            </label>
+            <label className="block">
+              <span className="text-sm font-semibold text-[#123c72]">Senha</span>
+              <span className="mt-2 flex h-12 items-center gap-3 rounded-md border border-[#c7d3e2] px-3">
+                <Lock className="h-5 w-5 text-[#607086]" />
+                <Input className="h-10 border-0 px-0 focus-visible:outline-none" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Digite sua senha" type={showPassword ? "text" : "password"} autoComplete="current-password" />
+                <button type="button" onClick={() => setShowPassword((value) => !value)} className="focus-ring rounded p-1 text-[#607086]" aria-label="Mostrar ou ocultar senha">
+                  <Eye className="h-5 w-5" />
+                </button>
+              </span>
+            </label>
+          </div>
+          <div className="mt-5 flex items-center justify-between gap-3 text-sm">
+            <label className="flex items-center gap-2 font-semibold text-[#123c72]">
+              <input checked={remember} onChange={(event) => setRemember(event.target.checked)} type="checkbox" className="h-4 w-4 accent-[#224f9a]" />
+              Lembrar de mim
+            </label>
+            <button type="button" className="focus-ring rounded text-sm font-semibold text-[#224f9a]">Esqueci minha senha</button>
+          </div>
+          {error ? <div role="alert" className="mt-5 rounded-md border border-[#f1b5b5] bg-[#fff4f4] px-3 py-2 text-sm font-medium text-[#9f2b2b]">{error}</div> : null}
+          <Button disabled={loading} className="mt-7 h-12 w-full">
+            {loading ? "Entrando..." : "Entrar"}
+          </Button>
+          <div className="my-7 flex items-center gap-3 text-sm font-semibold text-[#607086]">
+            <span className="h-px flex-1 bg-[#d8e1ec]" />
+            ou
+            <span className="h-px flex-1 bg-[#d8e1ec]" />
+          </div>
+          <Button type="button" variant="secondary" className="h-12 w-full">
+            <Building2 className="h-5 w-5" />
+            Acessar com minha empresa
+          </Button>
+          <p className="mt-5 text-xs leading-5 text-[#607086]">Demo local: use qualquer usuario seedado com a senha <strong>eram123</strong>. Cadastro publico nao esta disponivel.</p>
+        </form>
+      </section>
+    </main>
+  );
+}
