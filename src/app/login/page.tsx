@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Building2, Eye, Lock, Mail, ShieldCheck, TrendingUp, Users } from "lucide-react";
@@ -9,16 +9,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { users } from "@/lib/demo-data";
 import { assetPath } from "@/lib/asset-path";
-import { createClientSession } from "@/lib/client-session";
+import { clearClientSession, createClientSession } from "@/lib/client-session";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("admin@eram.local");
   const [password, setPassword] = useState("eram123");
-  const [remember, setRemember] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    clearClientSession();
+  }, []);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -33,7 +36,8 @@ export default function LoginPage() {
     }
     createClientSession(user.id);
     const nextUrl = new URL(window.location.href).searchParams.get("next");
-    router.push(nextUrl ?? "/dashboard");
+    const safeNextUrl = nextUrl && nextUrl.startsWith("/") && !nextUrl.startsWith("//") ? nextUrl : "/dashboard";
+    router.push(safeNextUrl);
   }
 
   return (
@@ -95,10 +99,7 @@ export default function LoginPage() {
             </label>
           </div>
           <div className="mt-5 flex items-center justify-between gap-3 text-sm">
-            <label className="flex items-center gap-2 font-semibold text-[#123c72]">
-              <input checked={remember} onChange={(event) => setRemember(event.target.checked)} type="checkbox" className="h-4 w-4 accent-[#224f9a]" />
-              Lembrar de mim
-            </label>
+            <span className="font-semibold text-[#123c72]">Sessao temporaria</span>
             <button type="button" className="focus-ring rounded text-sm font-semibold text-[#224f9a]">Esqueci minha senha</button>
           </div>
           {error ? <div role="alert" className="mt-5 rounded-md border border-[#f1b5b5] bg-[#fff4f4] px-3 py-2 text-sm font-medium text-[#9f2b2b]">{error}</div> : null}
