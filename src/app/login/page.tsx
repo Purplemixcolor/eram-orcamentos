@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { users } from "@/lib/demo-data";
 import { assetPath } from "@/lib/asset-path";
+import { createClientSession } from "@/lib/client-session";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,7 +31,7 @@ export default function LoginPage() {
       setError("E-mail ou senha incorretos.");
       return;
     }
-    window.localStorage.setItem("eram_session_user_id", user.id);
+    createClientSession(user.id);
     const nextUrl = new URL(window.location.href).searchParams.get("next");
     router.push(nextUrl ?? "/dashboard");
   }

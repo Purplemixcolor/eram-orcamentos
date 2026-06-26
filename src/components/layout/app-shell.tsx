@@ -4,10 +4,8 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
-import { users } from "@/lib/demo-data";
+import { getClientSessionUser } from "@/lib/client-session";
 import type { AppUser } from "@/lib/types";
-
-const SESSION_KEY = "eram_session_user_id";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -16,8 +14,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const userId = window.localStorage.getItem(SESSION_KEY);
-    const currentUser = users.find((item) => item.id === userId && item.active) ?? null;
+    const currentUser = getClientSessionUser();
     setUser(currentUser);
     setReady(true);
     if (!currentUser) {

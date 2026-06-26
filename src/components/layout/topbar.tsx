@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { Bell, LogOut, Plus, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { clearClientSession } from "@/lib/client-session";
 import type { AppUser } from "@/lib/types";
 
 export function Topbar({ user }: { user: AppUser }) {
   const router = useRouter();
 
   async function logout() {
-    window.localStorage.removeItem("eram_session_user_id");
+    clearClientSession();
     router.push("/login");
   }
 
