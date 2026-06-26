@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { assetPath } from "@/lib/asset-path";
 import { cn } from "@/lib/utils";
 
 type EramLogoProps = {
@@ -9,7 +10,7 @@ type EramLogoProps = {
 export function EramLogo({ className, priority }: EramLogoProps) {
   return (
     <Image
-      src="/brand/eram-logo.png"
+      src={assetPath("/brand/eram-logo.png")}
       alt="Estaleiro ERAM Rio Amazonas"
       width={320}
       height={240}

@@ -8,6 +8,7 @@ import { EramLogo } from "@/components/brand/eram-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { users } from "@/lib/demo-data";
+import { assetPath } from "@/lib/asset-path";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -37,7 +38,7 @@ export default function LoginPage() {
   return (
     <main className="grid min-h-screen bg-[#082747] lg:grid-cols-[1.18fr_0.82fr]">
       <section className="relative hidden overflow-hidden lg:block">
-        <Image src="/images/shipyard-login.jpg" alt="Estaleiro com embarcacao em reparo" fill priority className="object-cover" />
+        <Image src={assetPath("/images/shipyard-login.jpg")} alt="Estaleiro com embarcacao em reparo" fill priority className="object-cover" />
         <div className="absolute inset-0 bg-[#082747]/30" />
         <div className="absolute inset-y-0 right-0 w-24 bg-[#082747]" style={{ clipPath: "ellipse(80% 58% at 100% 50%)" }} />
         <div className="absolute left-[18%] top-[24%] max-w-md text-[#123c72]">
