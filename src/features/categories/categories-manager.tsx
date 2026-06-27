@@ -6,8 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
-import { Select } from "@/components/ui/select";
 import { categories as defaultCategories, serviceRecords } from "@/lib/demo-data";
+import { ERAM_CATEGORIES_KEY, ERAM_STATE_TABLE, getSupabaseClient } from "@/lib/supabase-sync";
 import { cn } from "@/lib/utils";
 
 type ManagedCategory = {
@@ -52,6 +52,8 @@ export function CategoriesManager() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState({ name: "", group: "", subcategories: "" });
   const [message, setMessage] = useState("");
+  const [syncStatus, setSyncStatus] = useState("Preparando sincronizacao...");
+  const [cloudReady, setCloudReady] = useState(false);
   const groups = useMemo(() => Array.from(new Set(items.map((item) => item.group))).sort(), [items]);
 
   useEffect(() => {
@@ -69,6 +71,79 @@ export function CategoriesManager() {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items]);
 
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      setSyncStatus("Modo local: Supabase nao configurado.");
+      return;
+    }
+    const supabaseClient = supabase;
+
+    let active = true;
+    async function loadCloudCategories() {
+      const { data, error } = await supabaseClient
+        .from(ERAM_STATE_TABLE)
+        .select("data, updated_at")
+        .eq("key", ERAM_CATEGORIES_KEY)
+        .maybeSingle();
+
+      if (!active) return;
+      if (error) {
+        setSyncStatus(`Nuvem indisponivel: ${error.message}`);
+        return;
+      }
+      if (data?.data && Array.isArray(data.data)) {
+        setItems(data.data as ManagedCategory[]);
+        setSyncStatus("Categorias carregadas da nuvem.");
+      } else {
+        await saveCategoriesToCloud(items);
+        setSyncStatus("Categorias iniciais enviadas para a nuvem.");
+      }
+      setCloudReady(true);
+    }
+
+    const channel = supabaseClient
+      .channel("eram-categories-sync")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: ERAM_STATE_TABLE, filter: `key=eq.${ERAM_CATEGORIES_KEY}` },
+        (payload) => {
+          const nextData = (payload.new as { data?: unknown } | null)?.data;
+          if (Array.isArray(nextData)) {
+            setItems(nextData as ManagedCategory[]);
+            setSyncStatus("Categorias atualizadas pela nuvem.");
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") setSyncStatus("Sincronizacao em tempo real ativa.");
+      });
+
+    loadCloudCategories();
+
+    return () => {
+      active = false;
+      supabaseClient.removeChannel(channel);
+    };
+  }, []);
+
+  async function saveCategoriesToCloud(nextItems: ManagedCategory[]) {
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+    const { error } = await supabase.from(ERAM_STATE_TABLE).upsert({
+      key: ERAM_CATEGORIES_KEY,
+      data: nextItems,
+      updated_at: new Date().toISOString()
+    });
+    setSyncStatus(error ? `Erro ao salvar na nuvem: ${error.message}` : "Alteracao salva na nuvem.");
+  }
+
+  function commitItems(nextItems: ManagedCategory[], localMessage: string) {
+    setItems(nextItems);
+    setMessage(localMessage);
+    if (cloudReady) void saveCategoriesToCloud(nextItems);
+  }
+
   function beginEdit(item: ManagedCategory) {
     setEditingId(item.id);
     setDraft({ name: item.name, group: item.group, subcategories: item.subcategories.join(", ") });
@@ -82,8 +157,7 @@ export function CategoriesManager() {
       setMessage("Informe o nome da categoria.");
       return;
     }
-    setItems((current) =>
-      current.map((item) =>
+    const nextItems = items.map((item) =>
         item.id === id
           ? {
               ...item,
@@ -92,23 +166,21 @@ export function CategoriesManager() {
               subcategories: draft.subcategories.split(",").map((value) => value.trim()).filter(Boolean)
             }
           : item
-      )
-    );
+      );
+    commitItems(nextItems, "Categoria atualizada.");
     setEditingId(null);
-    setMessage("Categoria atualizada.");
   }
 
   function addCategory() {
     const name = "Nova categoria";
     const id = `${slug(name)}-${Date.now()}`;
     const item = { id, name, group: "Servicos gerais", active: true, subcategories: [] };
-    setItems((current) => [item, ...current]);
+    commitItems([item, ...items], "Nova categoria criada.");
     beginEdit(item);
   }
 
   function toggleActive(id: string) {
-    setItems((current) => current.map((item) => (item.id === id ? { ...item, active: !item.active } : item)));
-    setMessage("Situacao da categoria atualizada.");
+    commitItems(items.map((item) => (item.id === id ? { ...item, active: !item.active } : item)), "Situacao da categoria atualizada.");
   }
 
   function removeCategory(id: string) {
@@ -116,17 +188,16 @@ export function CategoriesManager() {
     const usage = item ? serviceRecords.filter((record) => record.category === item.name).length : 0;
     if (usage > 0) {
       setMessage("Categoria com registros vinculados foi desativada em vez de removida.");
-      setItems((current) => current.map((category) => (category.id === id ? { ...category, active: false } : category)));
+      commitItems(items.map((category) => (category.id === id ? { ...category, active: false } : category)), "Categoria com registros vinculados foi desativada em vez de removida.");
       return;
     }
-    setItems((current) => current.filter((category) => category.id !== id));
-    setMessage("Categoria removida.");
+    commitItems(items.filter((category) => category.id !== id), "Categoria removida.");
   }
 
   function resetCategories() {
-    setItems(initialCategories());
+    const nextItems = initialCategories();
+    commitItems(nextItems, "Categorias restauradas para o padrao inicial.");
     setEditingId(null);
-    setMessage("Categorias restauradas para o padrao inicial.");
   }
 
   return (
@@ -142,6 +213,9 @@ export function CategoriesManager() {
         }
       />
       <div className="space-y-4 p-4">
+        <div className="rounded-md border border-[#d8e1ec] bg-white px-4 py-3 text-sm text-[#607086]">
+          <strong className="text-[#123c72]">Nuvem:</strong> {syncStatus}
+        </div>
         {message ? <div className="rounded-md border border-[#c7d3e2] bg-white px-4 py-3 text-sm font-semibold text-[#123c72]">{message}</div> : null}
         <section className="grid gap-3 md:grid-cols-3">
           <div className="rounded-md border border-[#d8e1ec] bg-white p-4 shadow-sm">

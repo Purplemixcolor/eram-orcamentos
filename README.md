@@ -62,6 +62,17 @@ pnpm build
 
 O Next gera os arquivos finais em `out/`. A versao estatica usa login local de demonstracao via `localStorage`, porque GitHub Pages nao executa rotas API, cookies server-side, Prisma ou PostgreSQL. Para producao com banco real, use uma hospedagem com runtime Node, como Vercel, Render ou servidor proprio.
 
+## Sincronizacao em nuvem das categorias
+
+A pagina de categorias usa o mesmo padrao do app de medicao: Supabase no front-end com chave publica e uma tabela JSON sincronizada em tempo real.
+
+1. Abra o SQL Editor do Supabase.
+2. Execute o conteudo de `supabase-eram-schema.sql`.
+3. Publique o site novamente.
+4. Ao editar categorias no site, a alteracao sera salva na tabela `eram_app_state` e enviada para outros navegadores abertos.
+
+Observacao: como o GitHub Pages nao possui backend, essa sincronizacao usa politicas publicas de leitura/escrita na tabela. Para controle por usuario e permissao real, mova essa logica para backend ou use Supabase Auth com RLS por perfil.
+
 ## Usuarios de demonstracao
 
 Todos usam a senha `eram123`.
