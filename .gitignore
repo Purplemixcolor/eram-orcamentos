@@ -6,6 +6,8 @@ node_modules
 coverage
 playwright-report
 test-results
+private-data
+__pycache__
 public/uploads
 *.tsbuildinfo
 test-results
