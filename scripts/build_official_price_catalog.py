@@ -44,6 +44,14 @@ def money(value: float | None) -> str:
     return "" if value is None else f"{value:.2f}"
 
 
+def split_quote_and_mc(row: dict[str, str]) -> tuple[str, str]:
+    quote_number = row.get("quote_number", "").strip()
+    work_order_number = row.get("work_order_number", "").strip()
+    if quote_number.upper().startswith("MC"):
+        return "", quote_number
+    return quote_number, work_order_number
+
+
 def confidence(samples: int, spread: float | None) -> str:
     if samples >= 8 and spread is not None and spread <= 0.5:
         return "Alta"
@@ -101,6 +109,7 @@ def main() -> None:
         reference_value = statistics.median(latest_values) if latest_values and len(latest_values) >= 3 else median_unit
         sample_title = max((row["title"] for row in rows), key=len)
         sample_sources = sorted({row["source_file"] for row in rows})[:10]
+        mc_ids = sorted({split_quote_and_mc(row)[1] for row in rows if split_quote_and_mc(row)[1]})[:20]
 
         official_id = f"CAT-{index:06d}"
         official_rows.append(
@@ -123,11 +132,13 @@ def main() -> None:
                 "total_value_median": money(statistics.median(total_values) if total_values else None),
                 "confidence": confidence(len(rows), spread),
                 "review_status": "Aguardando revisao",
+                "mc_ids": ", ".join(mc_ids),
                 "source_examples": " | ".join(sample_sources),
             }
         )
 
         for row in rows[:50]:
+            quote_number, mc_id = split_quote_and_mc(row)
             source_rows.append(
                 {
                     "catalog_id": official_id,
@@ -137,7 +148,8 @@ def main() -> None:
                     "year": row["year"],
                     "vessel": row["vessel"],
                     "shipowner": row["shipowner"],
-                    "quote_number": row["quote_number"],
+                    "quote_number": quote_number,
+                    "mc_id": mc_id,
                     "item_code": row["item_code"],
                     "unit_value": row["unit_value"],
                     "total_value": row["total_value"],
@@ -186,11 +198,11 @@ def main() -> None:
             "actualHours": "",
             "sector": "",
             "estimator": "",
-            "observations": f"Gerado por catalogo consolidado; amostras={row['samples']}; anos={row['years']}; confianca={row['confidence']}. Revisar antes de aprovar.",
+            "observations": f"Gerado por catalogo consolidado; amostras={row['samples']}; anos={row['years']}; MCs={row['mc_ids']}; confianca={row['confidence']}. Revisar antes de aprovar.",
             "serviceStatus": "Referencia de preco",
             "source": "Catalogo consolidado de orcamentos",
             "sourcePath": row["source_examples"],
-            "sourceReference": row["catalog_id"],
+            "sourceReference": f"{row['catalog_id']} | MCs: {row['mc_ids']}",
             "reliability": row["confidence"],
             "reviewStatus": "PENDING",
             "local": "",

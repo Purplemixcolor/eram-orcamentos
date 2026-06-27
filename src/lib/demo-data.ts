@@ -1,4 +1,5 @@
 import type { AppUser, Quote, ServiceRecord, Shipowner, Vessel } from "@/lib/types";
+import officialServiceRecords from "@/lib/official-service-records.json";
 
 export const categories = [
   "Sistema de governo",
@@ -142,7 +143,7 @@ const serviceNames = [
   "Docagem com limpeza de casco"
 ];
 
-export const serviceRecords: ServiceRecord[] = Array.from({ length: 40 }, (_, index) => {
+const demoServiceRecords: ServiceRecord[] = Array.from({ length: 40 }, (_, index) => {
   const vessel = vessels[index % vessels.length];
   const owner = shipowners.find((item) => item.tradeName === vessel.currentShipowner) ?? shipowners[0];
   const category = categories[(index * 3) % categories.length];
@@ -192,6 +193,8 @@ export const serviceRecords: ServiceRecord[] = Array.from({ length: 40 }, (_, in
     material: ["Aco naval", "Tinta epoxi", "Cabo eletrico", "Tubo carbono", "Conjunto mecanico"][index % 5]
   };
 });
+
+export const serviceRecords: ServiceRecord[] = [...(officialServiceRecords as ServiceRecord[]), ...demoServiceRecords];
 
 export const quotes: Quote[] = [
   {

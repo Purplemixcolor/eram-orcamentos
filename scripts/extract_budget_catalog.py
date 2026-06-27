@@ -17,6 +17,11 @@ try:
 except Exception:  # pragma: no cover - optional at runtime
     pdfplumber = None
 
+try:
+    from pypdf import PdfReader
+except Exception:  # pragma: no cover - optional at runtime
+    PdfReader = None
+
 
 UNIT_TOKENS = {
     "UN",
@@ -160,7 +165,6 @@ def infer_year(path: Path, *texts: str) -> int | None:
 def infer_quote_number(path: Path, *texts: str) -> str:
     haystack = " ".join([path.stem, *texts])
     patterns = [
-        r"\bMC\s*[-:]?\s*(\d{3,6})\b",
         r"\bOR[ÇC]AMENTO\s*(?:N[ºO.]*)?\s*[-:]?\s*([A-Z0-9./-]{2,})",
         r"\bORC[-\s]?(\d{2,6})\b",
     ]
@@ -169,6 +173,12 @@ def infer_quote_number(path: Path, *texts: str) -> str:
         if match:
             return match.group(0).strip()
     return ""
+
+
+def infer_mc_id(path: Path, *texts: str) -> str:
+    haystack = " ".join([path.stem, *texts])
+    match = re.search(r"\bMC\s*[-:]?\s*(\d{3,6})\b", haystack, flags=re.IGNORECASE)
+    return f"MC {match.group(1)}" if match else ""
 
 
 def infer_entities(path: Path, *texts: str) -> tuple[str, str]:
@@ -218,6 +228,7 @@ def extract_itemized_rows(path: Path, sheet_name: str, rows: list[list[Any]]) ->
     shipowner, vessel = infer_entities(path, sheet_context)
     year = infer_year(path, sheet_context)
     quote_number = infer_quote_number(path, sheet_context)
+    mc_id = infer_mc_id(path, sheet_context)
 
     for index, row in enumerate(rows, start=1):
         values = row_values(row)
@@ -283,7 +294,7 @@ def extract_itemized_rows(path: Path, sheet_name: str, rows: list[list[Any]]) ->
                 confidence=confidence,
                 year=year,
                 quote_number=quote_number,
-                work_order_number="",
+                work_order_number=mc_id,
                 shipowner=shipowner,
                 vessel=vessel,
                 item_code=strings[code_idx],
@@ -374,96 +385,99 @@ def extract_workbook(path: Path, max_rows: int = 5000, max_cols: int = 80) -> tu
     return extracted, ""
 
 
-def extract_pdf(path: Path, max_pages: int | None = None) -> tuple[list[CatalogItem], str]:
+def extract_pdf_lines(path: Path, max_pages: int | None = None) -> tuple[list[tuple[int, str]], str]:
+    if PdfReader is not None:
+        try:
+            reader = PdfReader(str(path))
+            pages = reader.pages if max_pages is None else reader.pages[:max_pages]
+            lines: list[tuple[int, str]] = []
+            for page_number, page in enumerate(pages, start=1):
+                text = page.extract_text() or ""
+                lines.extend((page_number, normalize_text(line)) for line in text.splitlines() if normalize_text(line))
+            return lines, ""
+        except Exception as exc:
+            return [], f"Erro ao ler PDF com pypdf: {type(exc).__name__}: {exc}"
+
     if pdfplumber is None:
-        return [], "pdfplumber indisponivel"
-    extracted: list[CatalogItem] = []
+        return [], "pypdf/pdfplumber indisponiveis"
+
     try:
         with pdfplumber.open(path) as pdf:
             pages = pdf.pages if max_pages is None else pdf.pages[:max_pages]
-            first_text = pages[0].extract_text() if pages else ""
-            shipowner, vessel = infer_entities(path, first_text or "")
-            quote_number = infer_quote_number(path, first_text or "")
-            year = infer_year(path, first_text or "")
+            lines = []
             for page_number, page in enumerate(pages, start=1):
                 text = page.extract_text() or ""
-                lines = [normalize_text(line) for line in text.splitlines() if normalize_text(line)]
-                for line_index, line in enumerate(lines):
-                    item_match = re.match(r"^(\d+(?:\.\d+)+)\s+(.+)$", line)
-                    if item_match and not should_skip_description(line):
-                        numbers = re.findall(r"(?:R\$\s*)?-?\d[\d. ]*,\d{2}", line)
-                        unit_match = re.search(r"\b(" + "|".join(re.escape(unit) for unit in sorted(UNIT_TOKENS, key=len, reverse=True)) + r")\b", line, flags=re.IGNORECASE)
-                        if len(numbers) >= 2 and unit_match:
-                            unit_value = parse_number(numbers[-2])
-                            total_value = parse_number(numbers[-1])
-                            description = re.sub(r"(?:R\$\s*)?-?\d[\d. ]*,\d{2}", "", item_match.group(2))
-                            description = re.sub(r"\b" + re.escape(unit_match.group(1)) + r"\b", "", description, flags=re.IGNORECASE)
-                            description = normalize_text(description)
-                            if len(description) < 8 and line_index > 0:
-                                description = normalize_text(lines[line_index - 1] + " " + description)
-                            if total_value and total_value > 0:
-                                extracted.append(
-                                    CatalogItem(
-                                        source_file=str(path),
-                                        source_type="pdf",
-                                        source_sheet="",
-                                        source_page=str(page_number),
-                                        source_row=None,
-                                        extraction_pattern="pdf_budget_line",
-                                        confidence="Baixa",
-                                        year=year,
-                                        quote_number=quote_number,
-                                        work_order_number="",
-                                        shipowner=shipowner,
-                                        vessel=vessel,
-                                        item_code=item_match.group(1),
-                                        title=description[:140],
-                                        description=description,
-                                        unit=unit_match.group(1).upper(),
-                                        quantity=None,
-                                        unit_value=unit_value,
-                                        total_value=total_value,
-                                        currency="BRL",
-                                        category_hint=category_hint(description),
-                                        review_notes="Extraido de texto PDF; revisar contra o documento original.",
-                                    )
-                                )
-
-                    material_match = re.match(r"^(\d{3,6}):\s+(.+?)\s+(\d{4,8})\s+(\d{2}/\d{2}/\d{2})\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)$", line)
-                    if material_match:
-                        description = normalize_text(material_match.group(2))
-                        quantity = parse_number(material_match.group(5))
-                        unit_value = parse_number(material_match.group(6))
-                        total_value = parse_number(material_match.group(7))
-                        if description and total_value and total_value > 0:
-                            extracted.append(
-                                CatalogItem(
-                                    source_file=str(path),
-                                    source_type="pdf",
-                                    source_sheet="",
-                                    source_page=str(page_number),
-                                    source_row=None,
-                                    extraction_pattern="pdf_cost_center_material",
-                                    confidence="Baixa",
-                                    year=year,
-                                    quote_number=quote_number,
-                                    work_order_number=material_match.group(3),
-                                    shipowner=shipowner,
-                                    vessel=vessel,
-                                    item_code=material_match.group(1),
-                                    title=description[:140],
-                                    description=description,
-                                    unit="",
-                                    quantity=quantity,
-                                    unit_value=unit_value,
-                                    total_value=total_value,
-                                    currency="BRL",
-                                    category_hint=category_hint(description),
-                                    review_notes="Item de centro de custo extraido de PDF; confirmar se deve compor catalogo oficial de servicos ou materiais.",
-                                )
-                            )
+                lines.extend((page_number, normalize_text(line)) for line in text.splitlines() if normalize_text(line))
+            return lines, ""
     except Exception as exc:
-        return extracted, f"Erro ao ler PDF: {type(exc).__name__}: {exc}"
+        return [], f"Erro ao ler PDF com pdfplumber: {type(exc).__name__}: {exc}"
+
+
+def extract_pdf(path: Path, max_pages: int | None = None) -> tuple[list[CatalogItem], str]:
+    extracted: list[CatalogItem] = []
+    numbered_lines, error = extract_pdf_lines(path, max_pages)
+    if error:
+        return extracted, error
+
+    plain_lines = [line for _, line in numbered_lines]
+    first_text = " ".join(plain_lines[:40])
+    shipowner, vessel = infer_entities(path, first_text)
+    quote_number = infer_quote_number(path, first_text)
+    mc_id = infer_mc_id(path, first_text)
+    year = infer_year(path, first_text)
+    unit_regex = r"\b(" + "|".join(re.escape(unit) for unit in sorted(UNIT_TOKENS, key=len, reverse=True)) + r")\b"
+
+    carry_description = ""
+    for line_index, (page_number, line) in enumerate(numbered_lines):
+        if not line:
+            continue
+        item_match = re.match(r"^(\d+(?:\.\d+)+)\s+(.+)$", line)
+        if not item_match:
+            if len(line) > 15 and not re.search(r"\bTOTAL\b|PLANILHA|OR[ÇC]AMENTO|MANAUS", line, flags=re.IGNORECASE):
+                carry_description = line
+            continue
+        if should_skip_description(line):
+            continue
+        numbers = re.findall(r"(?:R\$\s*)?-?\d[\d. ]*,\d{2}", line)
+        unit_match = re.search(unit_regex, line, flags=re.IGNORECASE)
+        if len(numbers) < 2 or not unit_match:
+            continue
+
+        unit_value = parse_number(numbers[-2])
+        total_value = parse_number(numbers[-1])
+        description = re.sub(r"(?:R\$\s*)?-?\d[\d. ]*,\d{2}", "", item_match.group(2))
+        description = re.sub(unit_regex, "", description, flags=re.IGNORECASE)
+        description = re.sub(r"\b\d+[.,]?\d*\b", "", description)
+        description = normalize_text(description)
+        if len(description) < 12 and carry_description:
+            description = normalize_text(carry_description + " " + description)
+        if total_value and total_value > 0 and description:
+            extracted.append(
+                CatalogItem(
+                    source_file=str(path),
+                    source_type="pdf",
+                    source_sheet="",
+                    source_page=str(page_number),
+                    source_row=line_index + 1,
+                    extraction_pattern="pdf_budget_line",
+                    confidence="Media" if unit_value and unit_value > 0 else "Baixa",
+                    year=year,
+                    quote_number=quote_number,
+                    work_order_number=mc_id,
+                    shipowner=shipowner,
+                    vessel=vessel,
+                    item_code=item_match.group(1),
+                    title=description[:140],
+                    description=description,
+                    unit=unit_match.group(1).upper(),
+                    quantity=None,
+                    unit_value=unit_value,
+                    total_value=total_value,
+                    currency="BRL",
+                    category_hint=category_hint(description),
+                    review_notes="Extraido de PDF; MC tratado como identificador da embarcacao/origem.",
+                )
+            )
     return extracted, ""
 
 

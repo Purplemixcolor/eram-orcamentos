@@ -10,7 +10,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { getServiceById } from "@/server/search/search-service";
 
 export function generateStaticParams() {
-  return serviceRecords.map((service) => ({ id: service.id }));
+  return serviceRecords.filter((service) => !service.id.startsWith("cat-")).map((service) => ({ id: service.id }));
 }
 
 export default async function ServiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -89,7 +89,7 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
             <h2 className="text-lg font-semibold text-[#0b2e59]">Servicos semelhantes</h2>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               {similar.map((item) => (
-                <Link key={item.id} href={`/services/${item.id}`} className="focus-ring rounded border border-[#edf2f7] p-3 hover:bg-[#f8fafc]">
+                <Link key={item.id} href={item.id.startsWith("cat-") ? "/search" : `/services/${item.id}`} className="focus-ring rounded border border-[#edf2f7] p-3 hover:bg-[#f8fafc]">
                   <div className="font-semibold text-[#123c72]">{item.title}</div>
                   <div className="mt-1 text-sm text-[#607086]">{item.vessel} - {item.shipowner} - {item.year}</div>
                   <div className="mt-2 font-semibold">{formatCurrency(item.originalTotalValue)}</div>

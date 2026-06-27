@@ -41,9 +41,7 @@ export function Sidebar() {
   return (
     <aside className="hidden min-h-screen w-72 shrink-0 border-r border-[#133e67] bg-[#082747] text-white lg:block">
       <div className="flex h-20 items-center border-b border-white/10 px-6">
-        <div className="rounded bg-white px-2 py-1">
-          <EramLogo className="w-28" priority />
-        </div>
+        <EramLogo className="w-32 drop-shadow-[0_2px_8px_rgba(0,0,0,0.22)]" priority />
       </div>
       <nav className="space-y-1 px-3 py-4" aria-label="Navegacao principal">
         {nav.map((item) => {

@@ -45,6 +45,7 @@ export function ServiceSearch() {
       }),
     [q, category, vessel, shipowner, startYear, endYear]
   );
+  const visibleResults = result.slice(0, 250);
 
   function toggle(id: string) {
     setSelected((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
@@ -84,7 +85,10 @@ export function ServiceSearch() {
           </Select>
         </div>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-          <div className="text-sm text-[#607086]">{result.length} registros encontrados de {serviceRecords.length} cadastrados</div>
+          <div className="text-sm text-[#607086]">
+            {result.length} registros encontrados de {serviceRecords.length} cadastrados
+            {result.length > visibleResults.length ? ` - mostrando os primeiros ${visibleResults.length}` : ""}
+          </div>
           <div className="flex gap-2">
             <Button type="button" variant="secondary" onClick={() => setView(view === "table" ? "cards" : "table")}>{view === "table" ? <LayoutGrid className="h-4 w-4" /> : <List className="h-4 w-4" />}Alternar visualizacao</Button>
             <Button type="button" variant="secondary"><Download className="h-4 w-4" />Exportar</Button>
@@ -104,10 +108,15 @@ export function ServiceSearch() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#edf2f7]">
-                {result.map((service) => (
+                {visibleResults.map((service) => {
+                  const catalogRecord = service.id.startsWith("cat-");
+                  return (
                   <tr key={service.id} className="hover:bg-[#f8fafc]">
                     <td className="px-3 py-3"><input aria-label={`Selecionar ${service.title}`} type="checkbox" checked={selected.includes(service.id)} onChange={() => toggle(service.id)} className="h-4 w-4 accent-[#224f9a]" /></td>
-                    <td className="max-w-[280px] py-3"><Link href={`/services/${service.id}`} className="font-semibold text-[#123c72] hover:underline">{service.title}</Link><div className="truncate text-xs text-[#607086]">{service.internalCode}</div></td>
+                    <td className="max-w-[280px] py-3">
+                      {catalogRecord ? <span className="font-semibold text-[#123c72]">{service.title}</span> : <Link href={`/services/${service.id}`} className="font-semibold text-[#123c72] hover:underline">{service.title}</Link>}
+                      <div className="truncate text-xs text-[#607086]">{service.internalCode}</div>
+                    </td>
                     <td>{service.category}</td>
                     <td>{service.vessel}</td>
                     <td>{service.shipowner}</td>
@@ -115,16 +124,18 @@ export function ServiceSearch() {
                     <td>{service.quantity} {service.unit}</td>
                     <td className="text-right font-semibold">{formatCurrency(service.originalTotalValue)}</td>
                     <td><Badge className={service.reviewStatus === "APPROVED" ? "bg-[#e4f5eb] text-[#146c3f]" : "bg-[#fff5d6] text-[#7a5200]"}>{reviewLabel(service.reviewStatus)}</Badge></td>
-                    <td className="text-right"><Link href={`/services/${service.id}`} className="inline-flex items-center gap-1 text-sm font-semibold text-[#224f9a]"><Eye className="h-4 w-4" />Abrir</Link></td>
+                    <td className="text-right">
+                      {catalogRecord ? <span className="text-sm font-semibold text-[#607086]">Catalogo</span> : <Link href={`/services/${service.id}`} className="inline-flex items-center gap-1 text-sm font-semibold text-[#224f9a]"><Eye className="h-4 w-4" />Abrir</Link>}
+                    </td>
                   </tr>
-                ))}
+                );})}
               </tbody>
             </table>
           </div>
         </section>
       ) : (
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {result.map((service) => (
+          {visibleResults.map((service) => (
             <article key={service.id} className="rounded-md border border-[#d8e1ec] bg-white p-4 shadow-sm">
               <div className="flex items-start justify-between gap-3">
                 <div><h3 className="font-semibold text-[#123c72]">{service.title}</h3><p className="mt-1 text-sm text-[#607086]">{service.description}</p></div>
@@ -135,7 +146,7 @@ export function ServiceSearch() {
               </div>
               <div className="mt-4 flex items-center justify-between">
                 <strong className="text-lg text-[#0b2e59]">{formatCurrency(service.originalTotalValue)}</strong>
-                <Link href={`/services/${service.id}`} className="inline-flex items-center gap-1 text-sm font-semibold text-[#224f9a]"><Plus className="h-4 w-4" />Detalhes</Link>
+                {service.id.startsWith("cat-") ? <span className="text-sm font-semibold text-[#607086]">Catalogo</span> : <Link href={`/services/${service.id}`} className="inline-flex items-center gap-1 text-sm font-semibold text-[#224f9a]"><Plus className="h-4 w-4" />Detalhes</Link>}
               </div>
             </article>
           ))}
